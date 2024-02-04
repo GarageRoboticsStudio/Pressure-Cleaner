@@ -1,0 +1,545 @@
+/*----------------------------------------------------------------------------*/
+/*                                                                            */
+/*    Module:       main.cpp                                                  */
+/*    Author:       C:\Users\danal                                            */
+/*    Created:      Sun Jul 02 2023                                           */
+/*    Description:  V5 project                                                */
+/*                                                                            */
+/*----------------------------------------------------------------------------*/
+
+// ---- START VEXCODE CONFIGURED DEVICES ----
+// Robot Configuration:
+// [Name]               [Type]        [Port(s)]
+// rightBack            motor         19              
+// leftBack             motor         12              
+// rightFront           motor         18              
+// leftFront            motor         13              
+// backLeft             motor         11              
+// backRight            motor         20              
+// frontRight           motor         17              
+// frontLeft            motor         14              
+// closeLRMotor         motor         10              
+// backLRMotor          motor         9               
+// leftUDMotor          motor         7               
+// rightUDMotor         motor         5               
+// butStpRL             bumper        G               
+// butStpUD             bumper        F               
+// pressTrigRight       motor         6               
+// Controller1          controller                    
+// pressTrigLeft        motor         4               
+// VexToPiTakePic       digital_out   A               
+// sigPiToVex           light         B               
+// moveRight            light         C               
+// ---- END VEXCODE CONFIGURED DEVICES ----
+
+#include "vex.h"
+#include <algorithm>
+#include <iostream>
+#include <string>
+#include <vector>
+
+using namespace vex;
+
+// GPIO 3 - Forward - LightsensorA
+// GPIO 15 - MoveRight - LightsensorB
+// GPIO 27 - moveBack - LightSensorC
+// GPIO 10 - MoveLeft - LightSensorD
+
+void allMotorStop() {
+  rightBack.stop();
+  leftBack.stop();
+  rightFront.stop();
+  leftFront.stop();
+  backRight.stop();
+  backLeft.stop();
+  frontLeft.stop();
+  frontRight.stop();
+}
+
+void setSpeed(int speed) {
+  rightBack.setVelocity(speed, percent);
+  leftBack.setVelocity(speed, percent);
+  rightFront.setVelocity(speed, percent);
+  leftFront.setVelocity(speed, percent);
+  backRight.setVelocity(speed, percent);
+  backLeft.setVelocity(speed, percent);
+  frontLeft.setVelocity(speed, percent);
+  frontRight.setVelocity(speed, percent);
+}
+//check forward
+void driveForward() {
+  rightBack.spin(forward);
+  leftBack.spin(forward);
+  rightFront.spin(forward);
+  leftFront.spin(forward);
+}
+//check reverse
+void driveBackward() {
+  rightBack.spin(reverse);
+  leftBack.spin(reverse);
+  rightFront.spin(reverse);
+  leftFront.spin(reverse);
+}
+
+void driveLeft() {
+  backRight.spin(forward);
+  backLeft.spin(forward);
+  frontLeft.spin(forward);
+  frontRight.spin(forward);
+}
+void driveRight() {
+  backRight.spin(reverse);
+  backLeft.spin(reverse);
+  frontLeft.spin(reverse);
+  frontRight.spin(reverse);
+}
+
+void LRMotorStop() {
+  closeLRMotor.stop();
+  backLRMotor.stop();
+}
+
+void UDMotorStop() {
+  leftUDMotor.stop();
+  rightUDMotor.stop();
+}
+
+void moveForwardEnc(int speed, int degreesToMove) {
+  setSpeed(speed);
+  rightBack.setPosition(0, degrees);
+  while (rightBack.position(degrees) < degreesToMove) {
+    driveForward();
+  }
+  allMotorStop();
+}
+
+void moveRightEnc(int speed, int degreesToMove) {
+  setSpeed(speed);
+  frontLeft.setPosition(0, degrees);
+  std::cout << frontLeft.position(degrees) << std::endl;
+  while (frontLeft.position(degrees) > -degreesToMove) {
+    //std::cout << frontLeft.position(degrees) << std::endl;
+    driveRight();
+  }
+  allMotorStop();
+}
+
+void PressCleanRightEnc(int degreesToMove, int speed) {
+  closeLRMotor.setVelocity(speed, percent);
+  backLRMotor.setVelocity(speed, percent);
+
+  closeLRMotor.setPosition(0, degrees);
+  while (closeLRMotor.position(degrees) > -degreesToMove) {
+    closeLRMotor.spin(reverse);
+    backLRMotor.spin(reverse);
+  }
+  LRMotorStop();
+}
+
+void PressCleanRightBut(int speed) {
+  closeLRMotor.setVelocity(speed, percent);
+  backLRMotor.setVelocity(speed, percent);
+
+  while (!butStpRL.pressing()) {
+    closeLRMotor.spin(reverse);
+    backLRMotor.spin(reverse);
+  }
+  // std::cout<< "stop" <<std::endl;
+  LRMotorStop();
+
+  closeLRMotor.setPosition(0, degrees);
+  while (closeLRMotor.position(degrees) < 50) {
+    closeLRMotor.spin(forward);
+    backLRMotor.spin(forward);
+  }
+  LRMotorStop();
+}
+
+void PCRightButToMeasureTicks(int speed) {
+  closeLRMotor.setVelocity(speed, percent);
+  backLRMotor.setVelocity(speed, percent);
+  closeLRMotor.setPosition(0, degrees);
+
+  while (!butStpRL.pressing()) {
+    closeLRMotor.spin(reverse);
+    backLRMotor.spin(reverse);
+  }
+  LRMotorStop();
+  std::cout << closeLRMotor.position(degrees) << std::endl;
+}
+
+void PressCleanLeftBut(int speed) {
+  closeLRMotor.setVelocity(speed, percent);
+  backLRMotor.setVelocity(speed, percent);
+
+  while (!butStpRL.pressing()) {
+    closeLRMotor.spin(forward);
+    backLRMotor.spin(forward);
+  }
+  LRMotorStop();
+
+  closeLRMotor.setPosition(0, degrees);
+  while (closeLRMotor.position(degrees) > -50) {
+    closeLRMotor.spin(reverse);
+    backLRMotor.spin(reverse);
+  }
+  LRMotorStop();
+}
+
+void PressCleanLeftEnc(int degreesToMove, int speed) {
+  closeLRMotor.setVelocity(speed, percent);
+  backLRMotor.setVelocity(speed, percent);
+  closeLRMotor.setPosition(0, degrees);
+
+  while (closeLRMotor.position(degrees) < degreesToMove) {
+    closeLRMotor.spin(forward);
+    backLRMotor.spin(forward);
+  }
+  LRMotorStop();
+}
+
+void PressCleanUpBut(int speed) {
+  leftUDMotor.setVelocity(speed, percent);
+  rightUDMotor.setVelocity(speed, percent);
+
+  while (!butStpUD.pressing()) {
+    leftUDMotor.spin(forward);
+    rightUDMotor.spin(forward);
+  }
+  UDMotorStop();
+
+  leftUDMotor.resetRotation();
+  while (leftUDMotor.rotation(degrees) > -50) {
+    rightUDMotor.spin(reverse);
+    leftUDMotor.spin(reverse);
+  }
+  UDMotorStop();
+}
+
+void PressCleanDownBut(int speed) {
+  leftUDMotor.setVelocity(speed, percent);
+  rightUDMotor.setVelocity(speed, percent);
+
+  while (!butStpUD.pressing()) {
+    leftUDMotor.spin(reverse);
+    rightUDMotor.spin(reverse);
+  }
+  UDMotorStop();
+
+  leftUDMotor.resetRotation();
+  while (leftUDMotor.rotation(degrees) < 50) {
+    rightUDMotor.spin(forward);
+    leftUDMotor.spin(forward);
+  }
+  UDMotorStop();
+}
+
+void PressCleanUpEnc(int degreesToMove, int speed) {
+  leftUDMotor.setVelocity(speed, percent);
+  rightUDMotor.setVelocity(speed, percent);
+  leftUDMotor.setPosition(0, degrees);
+
+  while (leftUDMotor.position(degrees) < degreesToMove) {
+    leftUDMotor.spin(forward);
+    rightUDMotor.spin(forward);
+  }
+  UDMotorStop();
+}
+
+void PressCleanDown(int degreesToMove, int speed) {
+  leftUDMotor.setVelocity(speed, percent);
+  rightUDMotor.setVelocity(speed, percent);
+
+  leftUDMotor.resetRotation();
+  while (leftUDMotor.rotation(degrees) > -degreesToMove) {
+    rightUDMotor.spin(reverse);
+    leftUDMotor.spin(reverse);
+  }
+  UDMotorStop();
+}
+
+void PressCleanUp(int degreesToMove, int speed) {
+  leftUDMotor.setVelocity(speed, percent);
+  rightUDMotor.setVelocity(speed, percent);
+
+  leftUDMotor.resetRotation();
+  while (leftUDMotor.rotation(degrees) < degreesToMove) {
+    rightUDMotor.spin(forward);
+    leftUDMotor.spin(forward);
+  }
+  UDMotorStop();
+}
+
+void PressCleanGetCentered(int RL, int UD) {
+  PressCleanDown(UD, 20);
+  PressCleanRightEnc(RL, 20);
+}
+
+void cleanCycle() {
+  if (Controller1.ButtonX.pressing()) {
+
+    Brain.Timer.reset();
+
+    PressCleanDownBut(30);
+    PressCleanRightBut(30);
+
+    pressTrigRight.spin(forward);
+    pressTrigLeft.spin(forward);
+
+    int count = 0;
+    while (count < 4) {
+      PressCleanLeftBut(30);
+      PressCleanUp(135, 30);
+      PressCleanRightBut(30);
+      PressCleanUp(135, 30);
+      count++;
+    }
+    PressCleanLeftBut(30);
+    PressCleanUp(135, 30);
+    PressCleanRightBut(30);
+
+    pressTrigRight.stop();
+    pressTrigLeft.stop();
+
+    PressCleanDownBut(30);
+    PressCleanRightBut(30);
+
+    PressCleanLeftEnc(622, 30);
+    PressCleanUpEnc(610, 30);
+
+    PressCleanDownBut(30);
+    PressCleanRightBut(30);
+
+    std::cout << Brain.Timer.value() << std::endl;
+  }
+}
+bool cleanDone;
+
+int main() {
+// Initializing Robot Configuration. DO NOT REMOVE!
+  vexcodeInit();
+
+  rightUDMotor.setMaxTorque(95, percent);
+  leftUDMotor.setMaxTorque(95, percent);
+  closeLRMotor.setMaxTorque(25, percent);
+  backLRMotor.setMaxTorque(25, percent);
+  pressTrigRight.setMaxTorque(80, percent);
+  pressTrigLeft.setMaxTorque(80, percent);
+
+  wait(3, sec);
+
+  std::cout << "Position Camera for Pre-Wash Picture 1" << std::endl;
+  wait(2, sec);
+  PressCleanDownBut(25);
+  PressCleanRightBut(25);
+  PressCleanLeftEnc(622, 30);
+  PressCleanUpEnc(810, 30);
+  std::cout << "Done Positioning Camera for Pre-Wash Picture 1" << std::endl;
+
+  std::cout << "Send Signal Vex To Pi for Pre-Wash Picture 1" << std::endl;
+  VexToPiTakePic.set(true);
+  wait(1.5, seconds);
+  VexToPiTakePic.set(false);
+  std::cout << "Completed Signal Vex To Pi for Pre-Wash Picture 1" << std::endl;
+
+  std::cout << "Wait for Pre-Wash Picture 1 and computation to be completed" << std::endl;
+  std::cout << sigPiToVex.value(mV) << std::endl;
+  while (sigPiToVex.value(mV) < 1500) {
+    std::cout << sigPiToVex.value(mV) << std::endl;
+    wait(0.4, seconds);
+  }
+  std::cout << "Received Signal Pre-Wash Picture 1 and computation complete" << std::endl;
+  std::cout << sigPiToVex.value(mV) << std::endl;
+
+  std::cout << "Starting to Clean Floor" << std::endl;
+  wait(2, sec);
+  PressCleanUpBut(25);
+  PressCleanLeftBut(25);
+
+  pressTrigRight.spin(forward);
+  pressTrigLeft.spin(forward);
+  wait(10, sec);
+  pressTrigRight.stop();
+  pressTrigLeft.stop();
+  
+  int count = 0;
+  while (count < 8) {//Need to change to 8 for real try
+    PressCleanRightBut(30);
+    PressCleanDown(80, 30);
+    PressCleanLeftBut(30);
+    PressCleanDown(80, 30);
+    count++;
+  }
+  pressTrigRight.stop();
+  pressTrigLeft.stop();
+
+  std::cout << "Done Cleaning Floor" << std::endl;
+
+  std::cout << "Position Camera for Post-Wash Picture 1" << std::endl;
+  wait(2, seconds);
+  PressCleanDownBut(25);
+  PressCleanRightBut(25);
+  PressCleanLeftEnc(622, 30);
+  PressCleanUpEnc(810, 30);
+  std::cout << "Done Positioning Camera for Post-Wash Picture 1" << std::endl;
+
+  std::cout << "Wait for Picture(Post-Wash Picture 1) and computation to be completed" << std::endl;
+  VexToPiTakePic.set(true);
+  wait(1.5, seconds);
+  VexToPiTakePic.set(false);
+  std::cout << "Received Signal Picture(Post-Wash Picture 1) and computation complete" << std::endl;
+
+  std::cout << "Pre-Waiting Move Right Signal:" << moveRight.value(mV) << std::endl;
+  std::cout << "Wait for Signal To Move Right" << std::endl;
+  while (moveRight.value(mV) < 15) {
+    wait(0.4, seconds);
+    Brain.Screen.clearScreen();
+    Brain.Screen.setCursor(1,1);
+    Brain.Screen.print("Waiting %.1f", moveRight.value(mV));
+    std::cout << "Waiting for Signal To Move Right: " << moveRight.value(mV) << std::endl;
+  }
+  std::cout << "Signal Received to move Right" << std::endl;
+  wait(0.2, seconds);
+  std::cout << moveRight.value(mV) << std::endl;
+  wait(0.2, seconds);
+
+  std::cout << "Move Right" << std::endl;
+  moveRightEnc(40,800);
+  std::cout << "Done Moving Right" << std::endl;
+  std::cout << "Waiting for Signal To Move Right: " << moveRight.value(mV) << std::endl;
+
+  std::cout << "Signal Pi- Ready to clean adjacent area" << std::endl;
+  VexToPiTakePic.set(true);
+  wait(1.5, seconds);
+  VexToPiTakePic.set(false);
+  std::cout << "Finish Signal Pi- Ready to clean adjacent area" << std::endl;
+
+  std::cout << "Position Camera for Pre-Wash Picture 2" << std::endl;
+  wait(2, sec);
+  PressCleanDownBut(25);
+  PressCleanRightBut(25);
+  PressCleanLeftEnc(622, 30);
+  PressCleanUpEnc(810, 30);
+  std::cout << "Done Positioning Camera for Pre-Wash Picture 2" << std::endl;
+
+  std::cout << "Send Signal Vex To Pi for Pre-Wash Picture 2" << std::endl;
+  VexToPiTakePic.set(true);
+  wait(1.5, seconds);
+  VexToPiTakePic.set(false);
+  std::cout << "Completed Signal Vex To Pi for Pre-Wash Picture 2" << std::endl;
+
+  std::cout << "Wait for Pre-Wash Picture 2 and computation to be completed" << std::endl;
+  std::cout << sigPiToVex.value(mV) << std::endl;
+  while (sigPiToVex.value(mV) < 1500) {
+    std::cout << sigPiToVex.value(mV) << std::endl;
+    wait(0.4, seconds);
+  }
+  std::cout << "Received Signal Pre-Wash Picture 1 and computation complete" << std::endl;
+
+  std::cout << "Starting to Clean Floor" << std::endl;
+  wait(2, sec);
+  PressCleanUpBut(25);
+  PressCleanLeftBut(25);
+
+  pressTrigRight.spin(forward);
+  pressTrigLeft.spin(forward);
+  
+  count = 0;
+  while (count < 4) {
+    PressCleanRightBut(20);
+    PressCleanDown(180, 20);
+    PressCleanLeftBut(20);
+    PressCleanDown(180, 20);
+    count++;
+  }
+  pressTrigRight.stop();
+  pressTrigLeft.stop();
+
+  std::cout << "Done Cleaning Floor" << std::endl;
+
+  std::cout << "Position Camera for Post-Wash Picture 2" << std::endl;
+  wait(2, seconds);
+  PressCleanDownBut(25);
+  PressCleanRightBut(25);
+  PressCleanLeftEnc(622, 30);
+  PressCleanUpEnc(810, 30);
+  std::cout << "Done Positioning Camera for Post-Wash Picture 2" << std::endl;
+
+  std::cout << "Wait for Picture(Post-Wash Picture 2) and computation to be completed" << std::endl;
+  VexToPiTakePic.set(true);
+  wait(1.5, seconds);
+  VexToPiTakePic.set(false);
+  std::cout << "Received Signal Picture(Post-Wash Picture 2) and computation complete" << std::endl;
+}
+
+// signal from Vex to Pi
+// SigVexToPi.off();
+//   cleanDone = false;
+//   while (true) {
+
+//     // wait until the screen is pressed
+//     waitUntil(Brain.Screen.pressing());
+//     if (cleanDone) {
+//       // Turn the LED off and set isOn to false
+//       SigVexToPi.off();
+//       cleanDone = false;
+//     } else {
+//       // Turn the LED on and set isOn to true
+//       SigVexToPi.on();
+//       cleanDone = true;
+//     }
+//     // wait until the screen is no longer pressed
+//     waitUntil(!Brain.Screen.pressing());
+
+//     wait(5, msec);
+//   }
+
+// For camera capture
+// 622 tiks left of origin
+// 810 tiks up of origin
+
+// std::cout<< "pressed" <<std::endl;
+
+// Code to show Button Pressed
+// while (true) {
+//   if (ButStpRL.pressing()) {
+//     std::cout << "pressed" << std::endl;
+//     Brain.Screen.print("pressed");
+//     wait(500, msec);
+//     Brain.Screen.clearLine();
+//   }
+//   wait(100, msec);
+// }
+
+// Grid Clean
+// int count = 0;
+// while (count < 4) {
+// PressCleanRightBut(20);
+// PressCleanDown(180, 20);
+// PressCleanLeftBut(20);
+// PressCleanDown(180, 20);
+// count++;
+// }
+
+// Get to Starting position
+// PressCleanUpBut(20);
+// PressCleanLeftBut(20);
+// PressCleanGetCentered(3400, 780):
+
+// Code showing communication between Pi and Vex
+// while(true) {
+//   std::cout<< moveForward.value(mV) <<std::endl;
+//   if (moveForward.value(mV) < 400) {
+//     std::cout<< moveForward.value(mV) <<std::endl;
+//     moveForwardEnc(20,100);
+//     wait(1, sec);
+//   }
+//   wait(1, sec);
+// }
+// Check to see if Vex can Signal Pi
+//   while (true) {
+//     sigVexToPi.on();
+//     wait(1.5, seconds);
+//     sigVexToPi.off();
+//     wait(3, seconds);
+//   }
